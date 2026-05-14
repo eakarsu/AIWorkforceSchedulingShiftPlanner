@@ -63,6 +63,9 @@ app.use('/api/shift-templates', shiftTemplateRoutes);
 app.use('/api/time-clock', timeClockRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/audit-log', auditLogRoutes);
+// Apply pass 5 — backlog extensions (fairness, wage compression, benefits, perf reviews, training)
+app.use('/api/extensions', require('./routes/extensions'));
+app.use('/api/custom', require('./routes/customFeatures'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -83,9 +86,15 @@ app.use((err, req, res, next) => {
   });
 });
 
+// // === Batch 09 Gaps & Frontend Mounts ===
+app.use('/api/gap-ai-aiworkforceschedulingshiftplanner', require('./routes/batch09GapAi')); // // === Batch 09 Gaps & Frontend Mounts ===
+app.use('/api/gap-nonai-aiworkforceschedulingshiftplanner', require('./routes/batch09GapNonai')); // // === Batch 09 Gaps & Frontend Mounts ===
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;
+
+

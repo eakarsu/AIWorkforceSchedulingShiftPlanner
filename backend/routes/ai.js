@@ -5,10 +5,17 @@ const pool = require('../db');
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
+class NoApiKeyError extends Error {
+  constructor() {
+    super('OPENROUTER_API_KEY is not configured');
+    this.code = 'NO_API_KEY';
+  }
+}
+
 async function callOpenRouter(prompt) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY is not configured');
+    throw new NoApiKeyError();
   }
 
   const response = await fetch(OPENROUTER_URL, {
@@ -515,6 +522,197 @@ Include dollar amounts and percentages where applicable.`;
     });
   } catch (error) {
     console.error('Error generating payroll insights:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// POST /api/ai/no-show-prediction
+// Apply pass 4 (mechanical backlog).
+router.post('/no-show-prediction', async (req, res) => {
+  try {
+    const { location_id, lookback_days } = req.body || {};
+    const days = parseInt(lookback_days) || 90;
+
+    const employees = await pool.query(`
+      SELECT e.id, e.first_name, e.last_name, e.position, e.department
+      FROM employees e
+      WHERE e.status = 'active' AND ($1::INTEGER IS NULL OR e.location_id = $1)
+    `, [location_id || null]);
+
+    const noShowHistory = await pool.query(`
+      SELECT s.employee_id,
+        COUNT(*) FILTER (WHERE s.status IN ('no_show','missed','absent')) as no_shows,
+        COUNT(*) FILTER (WHERE s.status = 'completed') as completed,
+        COUNT(*) FILTER (WHERE s.status = 'cancelled') as cancelled,
+        COUNT(*) as total_shifts
+      FROM shifts s
+      WHERE s.start_time >= NOW() - make_interval(days => $1)
+        AND ($2::INTEGER IS NULL OR s.location_id = $2)
+      GROUP BY s.employee_id
+    `, [days, location_id || null]);
+
+    const upcomingShifts = await pool.query(`
+      SELECT s.id, s.employee_id, s.start_time, s.end_time, s.shift_type
+      FROM shifts s
+      WHERE s.status = 'scheduled'
+        AND s.start_time >= NOW()
+        AND s.start_time <= NOW() + INTERVAL '14 days'
+        AND ($1::INTEGER IS NULL OR s.location_id = $1)
+      ORDER BY s.start_time ASC
+      LIMIT 200
+    `, [location_id || null]);
+
+    const prompt = `You are a workforce no-show prediction AI. Predict the probability that each upcoming shift will be a no-show based on historical patterns.
+
+EMPLOYEES:
+${JSON.stringify(employees.rows, null, 2)}
+
+NO-SHOW HISTORY (last ${days} days):
+${JSON.stringify(noShowHistory.rows, null, 2)}
+
+UPCOMING SCHEDULED SHIFTS:
+${JSON.stringify(upcomingShifts.rows, null, 2)}
+
+Please provide:
+1. A list of upcoming shifts with predicted no-show probability (0-1) and risk band (low/medium/high)
+2. Top 5 highest-risk shifts with reasoning
+3. Suggested mitigations (backup employees, reminder cadence, schedule swap candidates)
+4. Aggregate forecast: expected no-show rate over the next 14 days
+5. Patterns or root-cause hypotheses (day-of-week, shift-type, employee, etc.)
+
+Format as a structured analysis with clear sections.`;
+
+    const aiContent = await callOpenRouter(prompt);
+
+    let saved = null;
+    try {
+      const out = await pool.query(`
+        INSERT INTO ai_recommendations (type, location_id, title, recommendation, details, status)
+        VALUES ('no_show_prediction', $1, 'AI No-Show Prediction', $2, $3, 'pending')
+        RETURNING *
+      `, [location_id || null, aiContent, JSON.stringify({
+        lookback_days: days,
+        employees_considered: employees.rows.length,
+        upcoming_shifts: upcomingShifts.rows.length,
+      })]);
+      saved = out.rows[0];
+    } catch (_) { /* table may not exist yet */ }
+
+    res.json({
+      recommendation: saved,
+      ai_response: aiContent,
+      summary: {
+        employees: employees.rows.length,
+        upcoming_shifts: upcomingShifts.rows.length,
+        history_window_days: days,
+      },
+    });
+  } catch (error) {
+    if (error.code === 'NO_API_KEY') {
+      return res.status(503).json({ error: error.message });
+    }
+    console.error('Error generating no-show prediction:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// POST /api/ai/burnout-risk-detection
+// Apply pass 4 (mechanical backlog).
+router.post('/burnout-risk-detection', async (req, res) => {
+  try {
+    const { location_id, weeks_back } = req.body || {};
+    const weeks = parseInt(weeks_back) || 8;
+
+    const workload = await pool.query(`
+      SELECT e.id as employee_id, e.first_name, e.last_name, e.position, e.department,
+        COUNT(s.id) as shift_count,
+        COALESCE(SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600), 0) as total_hours,
+        COALESCE(AVG(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600), 0) as avg_shift_hours,
+        COUNT(DISTINCT DATE(s.start_time)) as days_worked
+      FROM employees e
+      LEFT JOIN shifts s ON s.employee_id = e.id
+        AND s.start_time >= NOW() - make_interval(weeks => $1)
+        AND s.status IN ('completed','scheduled')
+      WHERE e.status = 'active' AND ($2::INTEGER IS NULL OR e.location_id = $2)
+      GROUP BY e.id, e.first_name, e.last_name, e.position, e.department
+      ORDER BY total_hours DESC
+    `, [weeks, location_id || null]);
+
+    let overtimeRows = [];
+    try {
+      const ot = await pool.query(`
+        SELECT employee_id,
+          SUM(overtime_hours) as overtime_hours_total,
+          COUNT(*) as overtime_weeks
+        FROM overtime_records
+        WHERE week_start >= NOW()::DATE - make_interval(weeks => $1)
+        GROUP BY employee_id
+      `, [weeks]);
+      overtimeRows = ot.rows;
+    } catch (_) { /* table may not exist */ }
+
+    let timeOffRows = [];
+    try {
+      const t = await pool.query(`
+        SELECT employee_id, type, start_date, end_date, status
+        FROM time_off_requests
+        WHERE start_date >= NOW()::DATE - make_interval(weeks => $1)
+      `, [weeks]);
+      timeOffRows = t.rows;
+    } catch (_) { /* table may not exist */ }
+
+    const prompt = `You are a workforce burnout-risk AI. Analyze workload, overtime, and time-off data for the last ${weeks} weeks and identify employees at risk of burnout.
+
+WORKLOAD PER EMPLOYEE (last ${weeks} weeks):
+${JSON.stringify(workload.rows, null, 2)}
+
+OVERTIME SUMMARY:
+${JSON.stringify(overtimeRows, null, 2)}
+
+TIME-OFF REQUESTS:
+${JSON.stringify(timeOffRows, null, 2)}
+
+Please provide:
+1. Burnout risk score (0-100) for each employee with risk band (low / moderate / high / critical)
+2. Top 5 employees most at risk and the specific signals driving the score
+3. Department-level burnout patterns and hotspots
+4. Concrete mitigation actions per high-risk employee (rest periods, redistributed shifts, mandatory PTO, etc.)
+5. Early-warning indicators to monitor going forward
+6. Overall organizational burnout health score
+
+Be specific and reference numbers (hours, OT weeks, time-off pattern).`;
+
+    const aiContent = await callOpenRouter(prompt);
+
+    let saved = null;
+    try {
+      const out = await pool.query(`
+        INSERT INTO ai_recommendations (type, location_id, title, recommendation, details, status)
+        VALUES ('burnout_risk', $1, 'AI Burnout Risk Detection', $2, $3, 'pending')
+        RETURNING *
+      `, [location_id || null, aiContent, JSON.stringify({
+        weeks_analyzed: weeks,
+        employees_considered: workload.rows.length,
+        overtime_records: overtimeRows.length,
+      })]);
+      saved = out.rows[0];
+    } catch (_) { /* ignore */ }
+
+    res.json({
+      recommendation: saved,
+      ai_response: aiContent,
+      summary: {
+        employees: workload.rows.length,
+        overtime_records: overtimeRows.length,
+        time_off_records: timeOffRows.length,
+        weeks_analyzed: weeks,
+      },
+    });
+  } catch (error) {
+    if (error.code === 'NO_API_KEY') {
+      return res.status(503).json({ error: error.message });
+    }
+    console.error('Error detecting burnout risk:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
