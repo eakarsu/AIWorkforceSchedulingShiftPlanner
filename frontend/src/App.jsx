@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Clock, MapPin, ArrowLeftRight, Calendar,
   CalendarCheck, Coffee, Timer, DollarSign, Shield, Bell,
   TrendingUp, Brain, BarChart3, Sparkles, LogOut, Building2,
-  Copy, LogIn, Megaphone, FileText
+  Copy, LogIn, Megaphone, FileText, Wand2, Mic, AlertTriangle
 } from 'lucide-react';
 
 import Login from './pages/Login';
@@ -29,6 +29,26 @@ import ShiftTemplates from './pages/ShiftTemplates';
 import TimeClock from './pages/TimeClock';
 import Announcements from './pages/Announcements';
 import AuditLog from './pages/AuditLog';
+
+// // === Batch 09 Gaps & Frontend Mounts ===
+const PredictiveNoShowModelingWithAiDrivenReminderTimingCfs = React.lazy(() => import('./pages/Batch09/PredictiveNoShowModelingWithAiDrivenReminderTimingCfs'));
+const FairnessAuditByDemographicCfs = React.lazy(() => import('./pages/Batch09/FairnessAuditByDemographicCfs'));
+const BurnoutRiskDetectionFromShiftPatternsSurveyCfs = React.lazy(() => import('./pages/Batch09/BurnoutRiskDetectionFromShiftPatternsSurveyCfs'));
+const GigWorkerPreferenceLearningCfs = React.lazy(() => import('./pages/Batch09/GigWorkerPreferenceLearningCfs'));
+const ExternalLaborMarketIntegrationForFillInsCfs = React.lazy(() => import('./pages/Batch09/ExternalLaborMarketIntegrationForFillInsCfs'));
+const WageCompressionDetectionInternalEquityAlertsCfs = React.lazy(() => import('./pages/Batch09/WageCompressionDetectionInternalEquityAlertsCfs'));
+const WorkforceCapacityPlanningWithTurnoverPredictionCfs = React.lazy(() => import('./pages/Batch09/WorkforceCapacityPlanningWithTurnoverPredictionCfs'));
+const ProductivityPerShiftAnalysisWithAnomalyFlagsCfs = React.lazy(() => import('./pages/Batch09/ProductivityPerShiftAnalysisWithAnomalyFlagsCfs'));
+const AiBurnoutFatigueRiskModelingGapAi = React.lazy(() => import('./pages/Batch09/AiBurnoutFatigueRiskModelingGapAi'));
+const AiFairnessAuditorForScheduleEquityGapAi = React.lazy(() => import('./pages/Batch09/AiFairnessAuditorForScheduleEquityGapAi'));
+const PredictiveTurnoverAndRetentionModelingGapAi = React.lazy(() => import('./pages/Batch09/PredictiveTurnoverAndRetentionModelingGapAi'));
+const AiCandidateToShiftMatchingForGigWorkersGapAi = React.lazy(() => import('./pages/Batch09/AiCandidateToShiftMatchingForGigWorkersGapAi'));
+const BenefitsManagementGapNon = React.lazy(() => import('./pages/Batch09/BenefitsManagementGapNon'));
+const PerformanceReviewModuleGapNon = React.lazy(() => import('./pages/Batch09/PerformanceReviewModuleGapNon'));
+const TrainingAndLmsIntegrationGapNon = React.lazy(() => import('./pages/Batch09/TrainingAndLmsIntegrationGapNon'));
+const CertificationExpirationAlertsGapNon = React.lazy(() => import('./pages/Batch09/CertificationExpirationAlertsGapNon'));
+const GeofencedClockInMobileAttendanceGapNon = React.lazy(() => import('./pages/Batch09/GeofencedClockInMobileAttendanceGapNon'));
+const TipPoolAndTipOutCalculationsGapNon = React.lazy(() => import('./pages/Batch09/TipPoolAndTipOutCalculationsGapNon'));
 
 export const AuthContext = createContext();
 
@@ -187,7 +207,28 @@ export default function App() {
           <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
           <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        
+      {/* // === Batch 09 Gaps & Frontend Mounts === */}
+        <Route path="/batch09/cfs/predictive-no-show-modeling-with-ai-driven-reminder-timing" element={<React.Suspense fallback={<div>Loading...</div>}><PredictiveNoShowModelingWithAiDrivenReminderTimingCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/fairness-audit-by-demographic" element={<React.Suspense fallback={<div>Loading...</div>}><FairnessAuditByDemographicCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/burnout-risk-detection-from-shift-patterns-survey" element={<React.Suspense fallback={<div>Loading...</div>}><BurnoutRiskDetectionFromShiftPatternsSurveyCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/gig-worker-preference-learning" element={<React.Suspense fallback={<div>Loading...</div>}><GigWorkerPreferenceLearningCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/external-labor-market-integration-for-fill-ins" element={<React.Suspense fallback={<div>Loading...</div>}><ExternalLaborMarketIntegrationForFillInsCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/wage-compression-detection-internal-equity-alerts" element={<React.Suspense fallback={<div>Loading...</div>}><WageCompressionDetectionInternalEquityAlertsCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/workforce-capacity-planning-with-turnover-prediction" element={<React.Suspense fallback={<div>Loading...</div>}><WorkforceCapacityPlanningWithTurnoverPredictionCfs /></React.Suspense>} />
+        <Route path="/batch09/cfs/productivity-per-shift-analysis-with-anomaly-flags" element={<React.Suspense fallback={<div>Loading...</div>}><ProductivityPerShiftAnalysisWithAnomalyFlagsCfs /></React.Suspense>} />
+        <Route path="/batch09/gap-ai/ai-burnout-fatigue-risk-modeling" element={<React.Suspense fallback={<div>Loading...</div>}><AiBurnoutFatigueRiskModelingGapAi /></React.Suspense>} />
+        <Route path="/batch09/gap-ai/ai-fairness-auditor-for-schedule-equity" element={<React.Suspense fallback={<div>Loading...</div>}><AiFairnessAuditorForScheduleEquityGapAi /></React.Suspense>} />
+        <Route path="/batch09/gap-ai/predictive-turnover-and-retention-modeling" element={<React.Suspense fallback={<div>Loading...</div>}><PredictiveTurnoverAndRetentionModelingGapAi /></React.Suspense>} />
+        <Route path="/batch09/gap-ai/ai-candidate-to-shift-matching-for-gig-workers" element={<React.Suspense fallback={<div>Loading...</div>}><AiCandidateToShiftMatchingForGigWorkersGapAi /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/benefits-management" element={<React.Suspense fallback={<div>Loading...</div>}><BenefitsManagementGapNon /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/performance-review-module" element={<React.Suspense fallback={<div>Loading...</div>}><PerformanceReviewModuleGapNon /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/training-and-lms-integration" element={<React.Suspense fallback={<div>Loading...</div>}><TrainingAndLmsIntegrationGapNon /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/certification-expiration-alerts" element={<React.Suspense fallback={<div>Loading...</div>}><CertificationExpirationAlertsGapNon /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/geofenced-clock-in-mobile-attendance" element={<React.Suspense fallback={<div>Loading...</div>}><GeofencedClockInMobileAttendanceGapNon /></React.Suspense>} />
+        <Route path="/batch09/gap-nonai/tip-pool-and-tip-out-calculations" element={<React.Suspense fallback={<div>Loading...</div>}><TipPoolAndTipOutCalculationsGapNon /></React.Suspense>} />
+
+      </Routes>
       </BrowserRouter>
     </AuthContext.Provider>
   );

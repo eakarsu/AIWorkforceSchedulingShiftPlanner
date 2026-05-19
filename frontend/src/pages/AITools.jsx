@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../App';
-import { Sparkles, TrendingUp, Shield, Clock, Timer, DollarSign, Brain } from 'lucide-react';
+import { Sparkles, TrendingUp, Shield, Clock, Timer, DollarSign, Brain, AlertTriangle } from 'lucide-react';
 
 function AIResultDisplay({ data, title }) {
   if (!data) return null;
@@ -249,6 +249,30 @@ export default function AITools() {
           fields={[
             { name: 'start_date', label: 'Start Date', type: 'date', default: today },
             { name: 'end_date', label: 'End Date', type: 'date', default: nextWeek },
+          ]}
+        />
+
+        <AIToolSection
+          title="No-Show Prediction"
+          description="Predict the likelihood of upcoming shift no-shows from historical patterns."
+          icon={<AlertTriangle size={20} style={{ color: '#dc2626' }} />}
+          endpoint="/api/ai/no-show-prediction"
+          locations={locations}
+          fields={[
+            { name: 'location_id', label: 'Location', type: 'number' },
+            { name: 'lookback_days', label: 'Lookback Days', type: 'number', default: 90 },
+          ]}
+        />
+
+        <AIToolSection
+          title="Burnout Risk Detection"
+          description="Detect employees at risk of burnout based on workload, overtime, and PTO patterns."
+          icon={<Brain size={20} style={{ color: '#a855f7' }} />}
+          endpoint="/api/ai/burnout-risk-detection"
+          locations={locations}
+          fields={[
+            { name: 'location_id', label: 'Location', type: 'number' },
+            { name: 'weeks_back', label: 'Weeks To Analyze', type: 'number', default: 8 },
           ]}
         />
       </div>
