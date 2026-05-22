@@ -30,6 +30,11 @@ import TimeClock from './pages/TimeClock';
 import Announcements from './pages/Announcements';
 import AuditLog from './pages/AuditLog';
 
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+
 // // === Batch 09 Gaps & Frontend Mounts ===
 const PredictiveNoShowModelingWithAiDrivenReminderTimingCfs = React.lazy(() => import('./pages/Batch09/PredictiveNoShowModelingWithAiDrivenReminderTimingCfs'));
 const FairnessAuditByDemographicCfs = React.lazy(() => import('./pages/Batch09/FairnessAuditByDemographicCfs'));
@@ -184,6 +189,10 @@ export default function App() {
     <AuthContext.Provider value={{ token, user, login, logout }}>
       <BrowserRouter>
         <Routes>
+        <Route path="/insights/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+        <Route path="/codex/custom-viz" element={<ProtectedRoute><CodexCustomVizFeature /></ProtectedRoute>} />
+        <Route path="/codex/operations" element={<ProtectedRoute><CodexOperationsFeature /></ProtectedRoute>} />
+
           <Route path="/login" element={token ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
