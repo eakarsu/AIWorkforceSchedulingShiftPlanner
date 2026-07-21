@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'shift-planner-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -45,6 +45,14 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+router.get('/me', require('../middleware/auth'), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id,email,name,role FROM users WHERE id=$1', [req.user.id]);
+    if (!result.rows.length) return res.status(401).json({ error: 'Session user no longer exists' });
+    res.json(result.rows[0]);
+  } catch (_) { res.status(500).json({ error: 'Unable to verify persisted session' }); }
 });
 
 module.exports = router;

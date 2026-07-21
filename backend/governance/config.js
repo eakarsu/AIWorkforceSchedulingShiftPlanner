@@ -1,0 +1,31 @@
+module.exports={
+  caseType:'approved_workforce_schedule',initialState:'planning_intake_registered',
+  states:['planning_intake_registered','consent_verified','constraints_reconciled','demand_assessed','schedule_proposed','fairness_accessibility_evaluated','employee_feedback','manager_review','schedule_approved','sync_observed','sync_failed','appeal_pending','correction_review','outcome_measured','closed'],
+  createRoles:['scheduler','workforce_manager'],assessmentRoles:['scheduler','workforce_reviewer','accessibility_reviewer'],auditRoles:['workforce_manager','privacy_officer','auditor'],connectorRoles:['integration_operator','workforce_manager'],
+  evidenceKinds:['consent_record','hris_snapshot','lms_skills_snapshot','ats_eligibility_snapshot','calendar_version','availability_manifest','demand_forecast','labor_rule_version','accessibility_assessment','bias_cohort_report','schedule_version','employee_feedback','manager_approval','sync_receipt','failure_record','appeal_record','correction_record','outcome_report','deletion_receipt'],
+  requiredSignals:['hrisVersion','skillsVersion','calendarVersion','policyVersion','cohortVersion','consentVerified','scheduleConflictCount','coverageRatio','fairnessDeviation','accessibilityPassRate','overtimeViolationCount','p95LatencyMs','appealStatus','deletionStatus'],
+  professionalBoundary:'Recommendations are planning aids. Managers and affected workers retain review, appeal, correction, and accommodation authority; the API never publishes shifts, changes employment status, or sends messages.',
+  connectors:[{name:'hris',purpose:'employment, role, and deletion status'},{name:'lms',purpose:'versioned skill and training status'},{name:'ats',purpose:'consented eligibility references'},{name:'calendar',purpose:'availability and approved schedule receipts'},{name:'content',purpose:'policy and accessible guidance versions'},{name:'communication',purpose:'approved worker notice receipts'},{name:'payroll',purpose:'overtime and pay-rule reconciliation'},{name:'timeclock',purpose:'realized attendance outcomes'}],
+  transitions:[
+    {from:'planning_intake_registered',action:'verify_consent',to:'consent_verified',roles:['privacy_officer','scheduler'],requiresEvidence:true},
+    {from:'consent_verified',action:'reconcile_constraints',to:'constraints_reconciled',roles:['scheduler','integration_operator'],requiresEvidence:true},
+    {from:'constraints_reconciled',action:'record_demand_assessment',to:'demand_assessed',roles:['scheduler','workforce_reviewer'],requiresEvidence:true},
+    {from:'demand_assessed',action:'propose_schedule',to:'schedule_proposed',roles:['scheduler'],requiresEvidence:true},
+    {from:'schedule_proposed',action:'evaluate_fairness_accessibility',to:'fairness_accessibility_evaluated',roles:['accessibility_reviewer','workforce_reviewer'],requiresEvidence:true,dualControl:true},
+    {from:'fairness_accessibility_evaluated',action:'record_employee_feedback',to:'employee_feedback',roles:['scheduler','workforce_reviewer'],requiresEvidence:true},
+    {from:'employee_feedback',action:'submit_manager_review',to:'manager_review',roles:['workforce_reviewer'],requiresEvidence:true,dualControl:true},
+    {from:'manager_review',action:'approve_schedule_observation',to:'schedule_approved',roles:['workforce_manager','accessibility_reviewer'],requiresEvidence:true,dualControl:true},
+    {from:'schedule_approved',action:'record_sync',to:'sync_observed',roles:['integration_operator','workforce_manager'],requiresEvidence:true},
+    {from:'schedule_approved',action:'record_sync_failure',to:'sync_failed',roles:['integration_operator','workforce_manager'],requiresEvidence:true},
+    {from:'sync_observed',action:'open_appeal',to:'appeal_pending',roles:['scheduler','workforce_reviewer'],requiresEvidence:true},
+    {from:'sync_failed',action:'open_correction',to:'correction_review',roles:['scheduler','workforce_reviewer'],requiresEvidence:true},
+    {from:'appeal_pending',action:'review_correction',to:'correction_review',roles:['accessibility_reviewer','workforce_manager'],requiresEvidence:true,dualControl:true},
+    {from:'correction_review',action:'measure_outcome',to:'outcome_measured',roles:['workforce_reviewer','workforce_manager'],requiresEvidence:true,dualControl:true},
+    {from:'sync_observed',action:'measure_outcome',to:'outcome_measured',roles:['workforce_reviewer','workforce_manager'],requiresEvidence:true,dualControl:true},
+    {from:'outcome_measured',action:'close_plan',to:'closed',roles:['workforce_manager','auditor'],requiresEvidence:true}
+  ],
+  acceptedFixture:{hrisVersion:'h1',skillsVersion:'s1',calendarVersion:'c1',policyVersion:'p1',cohortVersion:'co1',consentVerified:true,scheduleConflictCount:0,coverageRatio:0.98,fairnessDeviation:0.04,accessibilityPassRate:1,overtimeViolationCount:0,p95LatencyMs:600,appealStatus:'none',deletionStatus:'not_requested'},
+  rejectedFixture:{hrisVersion:'h1',skillsVersion:'s1',calendarVersion:'c1',policyVersion:'p1',cohortVersion:'co1',consentVerified:true,scheduleConflictCount:0,coverageRatio:0.98,fairnessDeviation:0.18,accessibilityPassRate:1,overtimeViolationCount:0,p95LatencyMs:600,appealStatus:'none',deletionStatus:'not_requested'},
+  readyDisposition:'independent_workforce_manager_review_required',holdDisposition:'consent_fairness_accessibility_or_compliance_hold',decisionField:'schedulePublishCommand',
+  assess:x=>{const conflicts=Number(x.scheduleConflictCount),coverage=Number(x.coverageRatio),fairness=Number(x.fairnessDeviation),accessibility=Number(x.accessibilityPassRate),overtime=Number(x.overtimeViolationCount),latency=Number(x.p95LatencyMs);const ready=x.consentVerified===true&&conflicts===0&&coverage>=0.95&&fairness<=0.1&&accessibility===1&&overtime===0&&latency<=1000&&x.appealStatus==='none';return{disposition:ready?'independent_workforce_manager_review_required':'consent_fairness_accessibility_or_compliance_hold',schedulePublishCommand:null,employmentDecisionCommand:null,messageCommand:null,metrics:{conflicts,coverage,fairness,accessibility,overtime,latency},versions:{hris:x.hrisVersion,skills:x.skillsVersion,calendar:x.calendarVersion,policy:x.policyVersion,cohort:x.cohortVersion}};}
+};

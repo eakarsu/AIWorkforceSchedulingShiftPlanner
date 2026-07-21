@@ -1,5 +1,11 @@
 -- Seed Data for AI Workforce Scheduling & Shift Planner
 
+\if :{?allow_demo_seed}
+\else
+\echo 'Demo seed disabled; pass -v allow_demo_seed=1 only for an isolated non-production database.'
+\quit
+\endif
+
 -- Clear existing data (in reverse dependency order)
 TRUNCATE audit_log, announcements, time_clock, shift_templates, departments, ai_recommendations, compliance_records, demand_forecasts, notifications, payroll, overtime_records, breaks, availability, time_off_requests, shift_swap_requests, shifts, employees, locations, users RESTART IDENTITY CASCADE;
 
