@@ -57,17 +57,17 @@ if (process.env.ENABLE_LEGACY_PROVIDER_ROUTES === 'true' && process.env.NODE_ENV
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.status ? error.message : 'Internal server error' }));
 
-async function ensureTestUser() {
-  if (process.env.NODE_ENV !== 'test') return;
+async function ensureConfiguredUser() {
   const email = process.env.ADMIN_EMAIL || process.env.DEMO_EMAIL;
   const password = process.env.ADMIN_PASSWORD || process.env.DEMO_PASSWORD;
-  if (!email || !password) throw new Error('Explicit test administrator credentials are required');
+  if (!email && !password) return;
+  if (!email || !password || password.length < 12) throw new Error('Explicit administrator email and password of at least 12 characters are required');
   const hash = await bcrypt.hash(password, 10);
-  await pool.query(`INSERT INTO users (email,password,name,role) VALUES ($1,$2,$3,'admin') ON CONFLICT (email) DO UPDATE SET password=EXCLUDED.password`, [email, hash, 'Runtime Administrator']);
+  await pool.query(`INSERT INTO users (email,password,name,role) VALUES ($1,$2,$3,'admin') ON CONFLICT (email) DO UPDATE SET password=EXCLUDED.password,name=EXCLUDED.name,role=EXCLUDED.role`, [email, hash, 'Runtime Administrator']);
 }
 
 async function start() {
-  await ensureTestUser();
+  await ensureConfiguredUser();
   return app.listen(port, () => console.log(`Workforce Scheduling API listening on ${port}`));
 }
 if (require.main === module) start().catch((error) => { console.error('Startup failed:', error.message); process.exitCode = 1; });
