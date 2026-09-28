@@ -71,7 +71,7 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
           <button type="button" className="btn quick-login-btn" onClick={handleQuickLogin}>
-            <Zap size={16} /> Quick Login (Demo)
+            <Zap size={16} /> Auto Fill Demo Credentials
           </button>
         </form>
       </div>
